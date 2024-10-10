@@ -80,7 +80,7 @@ class LossWithClassifierAndPruning(torch.nn.Module):
         if not isinstance(outputs, torch.Tensor):
             # assume that the model outputs a tuple of [outputs, outputs_classifier]
             outputs, outputs_classifier = outputs
-        base_loss = self.base_criterion(outputs, labels)
+        base_loss = self.base_criterion(outputs, labels)#Lce
         for i in range(len(outputs_classifier)):
             base_loss += self.base_criterion(outputs_classifier[i], labels)
 
@@ -91,7 +91,7 @@ class LossWithClassifierAndPruning(torch.nn.Module):
         else:
             # For baseline training
             loss_p = 0
-
+        #compute the loss function via Eqn.12
         base_loss = base_loss + loss_p
 
         return base_loss
@@ -114,6 +114,7 @@ def lagrangian_regularization(model: torch.nn.Module, threshold: float,lambda_1,
     if expected_sparsity - target_sparsity <= 0:
         lagrangian_loss = param_remain * 0.
     else:
+        #Eqn.9
         lagrangian_loss = (
                 lambda_1 * (expected_sparsity - target_sparsity)
                 + lambda_2 * (expected_sparsity - target_sparsity) ** 2

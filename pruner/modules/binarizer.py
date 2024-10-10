@@ -10,7 +10,7 @@ class TopKBinarizer(autograd.Function):
     def forward(ctx, inputs: torch.tensor, threshold: float, head_split: int):
 
         # Get the subnetwork by sorting the inputs and using the top threshold
-        # %
+        # obtain the threshold of each layer
         threshold = torch.sigmoid(threshold).item()
 
         mask = inputs.clone()

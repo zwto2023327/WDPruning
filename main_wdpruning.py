@@ -7,7 +7,7 @@ import torch.backends.cudnn as cudnn
 import json
 import os
 # os.environ["CUDA_VISIBLE_DEVICES"] = '2'
-
+os.environ['CUDA_VISIBLE_DEVICES'] = '0,1,2,3'
 from pathlib import Path
 
 from timm.data import Mixup
@@ -31,8 +31,8 @@ import torch.nn as nn
 
 def get_args_parser():
     parser = argparse.ArgumentParser('Training and evaluation script', add_help=False)
-    parser.add_argument('--arch', default='deit_small', type=str, help='Name of model to train')
-    parser.add_argument('--batch-size', default=64, type=int)
+    parser.add_argument('--arch', default='deit_base', type=str, help='Name of model to train')
+    parser.add_argument('--batch-size', default=128, type=int)
     parser.add_argument('--epochs', default=100, type=int)
     parser.add_argument('--model-path', type=str, default='./checkpoint/deit_small_distilled_patch16_224-649709d9.pth')
 
@@ -142,15 +142,17 @@ def get_args_parser():
     parser.add_argument('--finetune', default='', help='finetune from checkpoint')
 
     # Dataset parameters
-    parser.add_argument('--data-path', default='/datasets01/imagenet_full_size/061417/', type=str,
+    #parser.add_argument('--data-path', default='/home/boot/wzx/data/ILSVRC/Data/CLS-LOC/', type=str,
+    #                    help='dataset path')
+    parser.add_argument('--data-path', default='/home/boot/wzx/width-and-Depth-pruning-for-Vision-Transformer-main/cifar-10-batches-py/', type=str,
                         help='dataset path')
-    parser.add_argument('--data-set', default='IMNET', choices=['CIFAR100','CIFAR10', 'IMNET', 'INAT', 'INAT19'],
+    parser.add_argument('--data-set', default='CIFAR10', choices=['CIFAR100','CIFAR10', 'IMNET', 'INAT', 'INAT19'],
                         type=str, help='Image Net dataset path')
     parser.add_argument('--inat-category', default='name',
                         choices=['kingdom', 'phylum', 'class', 'order', 'supercategory', 'family', 'genus', 'name'],
                         type=str, help='semantic granularity')
 
-    parser.add_argument('--output_dir', default='',
+    parser.add_argument('--output_dir', default='logs/cifar',
                         help='path where to save, empty for no saving')
     parser.add_argument('--device', default='cuda',
                         help='device to use for training / testing')
@@ -239,7 +241,6 @@ def adjust_learning_rate(param_groups, init_lr, min_lr, step, max_step, warming_
 
 def main(args):
     utils.init_distributed_mode(args)
-
     print(args)
     output_dir = Path(args.output_dir)
     writer = SummaryWriter(log_dir=args.output_dir)
@@ -325,7 +326,7 @@ def main(args):
         model_path = './checkpoint/deit_tiny_patch16_224-a1311bcf.pth'
     model = VisionTransformerWithWDPruning(num_classes=args.nb_classes,
         patch_size=16, embed_dim=embed_dim, depth=12, num_heads=num_heads, mlp_ratio=4, qkv_bias=True, distilled=args.distill,
-        head_pruning=True, fc_pruning=True,classifiers=args.classifiers
+        head_pruning=True, fc_pruning=True, classifiers=args.classifiers
     )
 
     if args.data_set == 'IMNET':
@@ -430,7 +431,7 @@ def main(args):
     loss_scaler = NativeScaler()
 
     # lr_scheduler, _ = create_scheduler(args, optimizer)
-
+    #todo criterion有些乱
     criterion = LabelSmoothingCrossEntropy()
 
     if args.mixup > 0.:
@@ -501,7 +502,7 @@ def main(args):
                     'args': args,
                 }, checkpoint_path)
 
-        test_stats = evaluate_classifiers(data_loader_val, model, device,classifiers = args.classifiers)
+        test_stats = evaluate_classifiers(data_loader_val, model, device, classifiers = args.classifiers)
         print(f"Accuracy of the network on the {len(dataset_val)} test images: {test_stats['acc1']:.1f}%")
         if max_accuracy < test_stats['acc1'] and epoch >= args.warmup_epochs:
             save_model(output_dir, model_without_ddp)

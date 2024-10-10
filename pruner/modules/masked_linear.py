@@ -86,7 +86,7 @@ class MaskedLinear(nn.Linear):
 
     def make_inference_pruning(self):
         self.inference_mode = True
-
+        #obtain the masks via Eqn.2
         mask_head, mask = self.get_mask()
         if not self.head_pruning:
             mask_head = torch.ones_like(self.weight[:, 0]).type(

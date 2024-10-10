@@ -5,7 +5,7 @@ from collections import OrderedDict
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch._six import container_abcs
+import collections.abc as container_abcs
 from pruner.modules.masked_linear import MaskedLinear
 
 def _cfg(url='', **kwargs):
@@ -144,7 +144,7 @@ class Attention(nn.Module):
         self.att_output_mask = att_output_mask
         # we need to remove cols from O layer since heads are pruned
         self.proj.make_column_purning(value_mask)
-
+        #obtain the masked weight matrices via Eqn.3 and Eqn.5
 
 class Block(nn.Module):
 
