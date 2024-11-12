@@ -6,6 +6,7 @@ import torch
 import torch.backends.cudnn as cudnn
 import json
 import os
+from PIL import ImageFile
 # os.environ["CUDA_VISIBLE_DEVICES"] = '2'
 os.environ['CUDA_VISIBLE_DEVICES'] = '0,1,2,3'
 from pathlib import Path
@@ -15,8 +16,9 @@ from timm.models import create_model
 from timm.loss import LabelSmoothingCrossEntropy, SoftTargetCrossEntropy
 from timm.scheduler import create_scheduler
 from timm.optim import create_optimizer
+#在深度学习中，混合精度训练是一种通过使用不同数值精度（如16位浮点数和32位浮点数）来加速训练过程并减少内存使用的方法。NativeScaler 类通过缩放损失值来避免在反向传播过程中可能出现的梯度下溢或上溢问题，从而稳定训练过程。
 from timm.utils import NativeScaler, get_state_dict, ModelEma
-
+#modelema通过对模型参数的指数移动平均来稳定和优化模型的训练过程
 from datasets import build_dataset
 from engine import train_one_epoch, evaluate_classifiers
 from losses import LossWithClassifierAndPruning
@@ -242,6 +244,7 @@ def adjust_learning_rate(param_groups, init_lr, min_lr, step, max_step, warming_
 def main(args):
     utils.init_distributed_mode(args)
     print(args)
+    ImageFile.LOAD_TRUNCATED_IMAGES = True
     output_dir = Path(args.output_dir)
     writer = SummaryWriter(log_dir=args.output_dir)
     if args.output_dir and utils.is_main_process():
@@ -258,7 +261,11 @@ def main(args):
     torch.manual_seed(seed)
     np.random.seed(seed)
     # random.seed(seed)
-
+    #输入数据大小固定的场景最大化运行效率
+    ''' deterministic：当设置为 True 时，确保 cuDNN 的操作是确定性的，即每次运行都会得到相同的结果。这可能会牺牲一些性能，但在需要结果一致性的情况下非常有用，比如调试或验证模型时。默认值为 False。
+        enabled：用于启用或禁用 cuDNN。当设置为 False 时，PyTorch 将不会使用 cuDNN，即使它已安装。这主要用于调试目的。默认值为 True。
+        allow_tf32：当设置为 True 时，允许 cuDNN 使用 TensorFloat-32（TF32）格式，这是一种使用 10 位有效精度进行计算的格式，旨在提高性能同时减少内存带宽使用。这对于具有足够数值稳定性的模型可能非常有用。默认行为取决于 cuDNN 的版本和安装的 GPU 类型
+    '''
     cudnn.benchmark = True
 
     dataset_train, args.nb_classes = build_dataset(is_train=True, args=args)
